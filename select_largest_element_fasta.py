@@ -2,6 +2,7 @@
 """select_largest_element_fasta.py is a python script that selects and print in fasta the longest genomic element (like a UTR, coding region etc.) from the same gene out of a multi fasta file.
 """
 
+
 __version__ = "0.0.1"
 
 # import sys
@@ -23,13 +24,12 @@ for record in (rec.upper() for rec in SeqIO.parse(optArgs.infile, "fasta")):  # 
     names = record.id.split()[0].split("|")  # The first field until the first whitespace (FASTA conversion) is selected as ID and then split with | for ENSEMPLE ad so. conversions.
     gene = names[0]  # This is the gene name.
     # Populate the dictionary.
-    if gene not in genesElement:
-        if len(record.seq) >= optArgs.length:
-            genesElement[gene] = record
-    else:
+    if gene in genesElement:
         # This condition checks for the longest sequence.
         if len(record.seq) >= len(genesElement[gene].seq):
             genesElement[gene] = record
 
+    elif len(record.seq) >= optArgs.length:
+        genesElement[gene] = record
 # Write to output
 SeqIO.write(list(genesElement.values()), optArgs.outfile, "fasta")

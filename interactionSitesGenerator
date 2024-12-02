@@ -29,25 +29,25 @@ ns = cmdParser.parse_args()
 # TODO Parameters compatibility checking
 
 
-def generate_interval_string(current, interval, interactions) :
+def generate_interval_string(current, interval, interactions):
   """Function to generate the interaction intervals string.
   """
   # Initialise the intervals string
   intervalStr = str(current)
   # Generate the intervals string
-  for j in xrange(interactions - 1):
+  for _ in xrange(interactions - 1):
     intervalStr = intervalStr + "\t" + str(current + interval)
     current += interval
   return(intervalStr)
 
 # Main program
 for i in xrange(ns.chromosomes):
-  if ns.interactions and ns.period == None:
+  if ns.interactions and ns.period is None:
     # Calculate the regular intervals.
     interval = int(math.floor((ns.genomeSize + 1)/ float(ns.interactions)))
     # No of interactions are the specified interactions
     interactions = ns.interactions
-  elif ns.period and ns.interactions == None:
+  elif ns.period and ns.interactions is None:
     # Regular intervals are the period
     interval = ns.period
     # Calculate the number of interactions
@@ -57,7 +57,7 @@ for i in xrange(ns.chromosomes):
     interval = ns.period
     # No of interactions are the specified interactions
     interactions = ns.interactions
-  else :
+  else:
     raise StandardError, "Specify either the number of interactions or the required period (or both)"
   # Careful with the calculation of the first interaction site position.
   start = int(math.floor((ns.genomeSize - interval * (interactions - 1)) / 2.0))
@@ -65,20 +65,23 @@ for i in xrange(ns.chromosomes):
   if ns.nullModel :
     interval = 'Rnd%0.4i' % ns.rndSeed
     rng = random.Random(ns.rndSeed) # Initialise the RNG object
-  outFile = open(ns.baseFilename + "_in" + str(interactions) + "_p" + str(interval) + "_G" + str(ns.genomeSize) + ".txt", "w")
+  outFile = open(
+      f"{ns.baseFilename}_in{str(interactions)}_p{str(interval)}_G{str(ns.genomeSize)}.txt",
+      "w",
+  )
   # Start writing the outfile
   outFile.write("%i\n" % i)
   outFile.write("################\n")
   # Generate the intervals string.
-  if ns.nullModel :
+  if ns.nullModel:
     intervalStr = ""
-    intSites = [rng.random() for site in xrange(interactions)]
+    intSites = [rng.random() for _ in xrange(interactions)]
     intSites = [int(math.floor(x * ns.genomeSize)) for x in intSites]
     intSites.sort()
     for site in intSites :
       intervalStr = intervalStr + str(site) + "\t"
     string.rstrip(intervalStr)
-  else :
+  else:
     intervalStr = generate_interval_string(start, interval, interactions)
   # One write call sorts out all the different cases!
   outFile.write("%s\n" % intervalStr)

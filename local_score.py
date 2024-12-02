@@ -19,7 +19,9 @@ def local_score(sequence, scoring, n):
         try:
             local_scores.append(max(0, local_scores[-1] + scoring[symbol]))
         except KeyError:
-            raise KeyError('Symbol {} not found in scoring dictionary. Please check your scoring function and/or your input file.'.format(symbol))
+            raise KeyError(
+                f'Symbol {symbol} not found in scoring dictionary. Please check your scoring function and/or your input file.'
+            )
     return(local_scores[1:])
 
 
@@ -55,8 +57,10 @@ if __name__ == '__main__':
     # Iterate over all fasta sequences.
     for seq in SeqIO.parse(optArgs.infile, "fasta"):
         ls = local_score(seq.seq, SCORING, optArgs.nb)
-        if (optArgs.verbose):
-            optArgs.outfile.write("ID: {} LS_max: {}\nSeq: {}\nScore: {}\n".format(seq.id, max(ls), seq.seq, ' '.join(map(str, ls))))
+        if optArgs.verbose:
+            optArgs.outfile.write(
+                f"ID: {seq.id} LS_max: {max(ls)}\nSeq: {seq.seq}\nScore: {' '.join(map(str, ls))}\n"
+            )
         else:
-            optArgs.outfile.write("ID: {} LS_max: {}\n".format(seq.id, max(ls)))
+            optArgs.outfile.write(f"ID: {seq.id} LS_max: {max(ls)}\n")
     #optArgs.outfile.write("\n")

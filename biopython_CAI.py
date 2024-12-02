@@ -54,20 +54,13 @@ def generate_codon_dict_fasta(fasta_file):
             if len(rec.seq) < 45:
                 continue;
             # Make all UPPERcase.
-            if str(rec.seq).islower():
-                dna_seq = str(rec.seq).upper()
-            else:
-                dna_seq = str(rec.seq)
+            dna_seq = str(rec.seq).upper() if str(rec.seq).islower() else str(rec.seq)
             for i in range(0, len(dna_seq), 3):
                 codon = dna_seq[i:i+3]
                 if codon in codon_counts:
                     codon_counts[codon] += 1
-                elif len(codon) < 3:
-                    pass
-                elif "N" in codon:
-                    pass
-                else:
-                    raise TypeError("Illegal codon {} in gene: {}".format(codon, rec.id))
+                elif len(codon) >= 3 and "N" not in codon:
+                    raise TypeError(f"Illegal codon {codon} in gene: {rec.id}")
     #with open("codon_counts_" + datetime.datetime.now().strftime('%Y%m%d_%H%M%S') + ".json", "w") as js:
     #    json.dump(codon_counts, js)
     return codon_counts
@@ -92,7 +85,7 @@ def generate_index_dict(organism, dict_ext = None):
     elif dict_ext:
         codon_dict = dict_ext
     else:
-        raise ValueError("Organism {} is not supported".format(organism))
+        raise ValueError(f"Organism {organism} is not supported")
     for aa in CodonUsage.SynonymousCodons:
         total = 0.0
         # RCSU values are CodonCount/((1/num of synonymous codons) * sum of all synonymous codons)
@@ -125,8 +118,8 @@ def calculate_CAI(file, cci=CurrentCodonIndex):
         cai = SeqCai.cai_for_gene(str(seq.seq))
         idt = seq.id
         caidf.loc[idt] = float(cai)
-    print("Total seqs: {}".format(k))
-    print("Total number of wrong codons: {}".format(SeqCai.j))
+    print(f"Total seqs: {k}")
+    print(f"Total number of wrong codons: {SeqCai.j}")
     return caidf
 
 

@@ -8,6 +8,7 @@ mail: cbouyio@gmail.com
 Oct 2018
 UMR7216 Paris Diderot"""
 
+
 __version__ = "0.1a01"
 
 import sys
@@ -57,9 +58,7 @@ for gt in gtIDs :
 expressedTranscripts = []
 
 # Select the expressed transcripts.
-for gene in geneTranscripts:
-#    expressedTranscripts.append(("-" +str(gene), 0))
-    trs = geneTranscripts[gene]
+for gene, trs in geneTranscripts.items():
     # If there is a single transcript put it in the list directly.
     if len(trs) == 1:
         topTr = trs[0]
