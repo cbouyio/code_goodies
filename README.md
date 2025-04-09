@@ -19,6 +19,9 @@ A small script to generate typical and toy input files of arbitrary complexity f
 #### local_score.py
 A simple implementation of the local score algorithm.
 
+#### rGoodies_DiffEnrichClustAnal_functions
+An R functions library containing everyday usefull functions for RNA-seq analysis.
+
 #### selectExpressedTranscripts
 A script to select the most expressed transcript.
 
