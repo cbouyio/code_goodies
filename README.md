@@ -1,7 +1,7 @@
-Python Goodies
+Code Goodies
 =============
 
-A set of python scripts and modules for (mostly) typical everyday chores developed in UEA, TSL, iSSB and Paris Diderot - Paris VII (now Université de Paris).
+A set of R scripts and python scripts and modules for (mostly) typical code chores developed in UEA, TSL, iSSB and Paris Diderot - Paris VII (Université de Paris now Université Paris Cité).
 Since 2007.
 
 #### biopython_CAI.py
