@@ -5,8 +5,11 @@
 library(mclust)
 library(tidyverse)
 library(ggplot2)
+library(ggpubr)
 library(RColorBrewer)
 library(diptest)
+library(enrichplot)
+library(clusterProfiler)
 
 
 # Global functions
@@ -255,25 +258,103 @@ plot_unSupervised_clust <- function(data, method, scale = FALSE, title = TRUE, .
 
 
 # Enrichment functions ----------------
-comp_allEGO <- function(degsUP, degsDOWN, org, key, uni, pv = 0.01){
+
+compute_allEGOs <- function(degsUP, degsDOWN, org, key, uni, pv = 0.05, ...) {
+  # Computes all GO enrichments for list of genes of interest. UP and DOWN and union.
+  # Returns a list of 6 enrichResult instances.
   degsALL <- c(degsUP, degsDOWN)
-  ego1 <- enrichGO(gene = degsALL, OrgDb = org, keyType = key, ont = "MF", pvalueCutoff = pv, universe = uni, readable = FALSE, pool = TRUE)
-  ego2 <- enrichGO(gene = degsUP, OrgDb = org, keyType = key, ont = "MF", pvalueCutoff = pv, universe = uni, readable = FALSE, pool = TRUE)
-  ego3 <- enrichGO(gene = degsDOWN, OrgDb = org, keyType = key, ont = "MF", pvalueCutoff = pv, universe = uni, readable = FALSE, pool = TRUE)
-  ego4 <- enrichGO(gene = degsALL, OrgDb = org, keyType = key, ont = "BP", pvalueCutoff = pv, universe = uni, readable = FALSE, pool = TRUE)
-  ego5 <- enrichGO(gene = degsUP, OrgDb = org, keyType = key, ont = "BP", pvalueCutoff = pv, universe = uni, readable = FALSE, pool = TRUE)
-  ego6 <- enrichGO(gene = degsDOWN, OrgDb = org, keyType = key, ont = "BP", pvalueCutoff = pv, universe = uni, readable = FALSE, pool = TRUE)
+  ego1 <- enrichGO(gene = degsALL, OrgDb = org, keyType = key, ont = "MF", pvalueCutoff = pv, universe = uni, readable = FALSE, pool = TRUE, ...)
+  ego2 <- enrichGO(gene = degsUP, OrgDb = org, keyType = key, ont = "MF", pvalueCutoff = pv, universe = uni, readable = FALSE, pool = TRUE, ...)
+  ego3 <- enrichGO(gene = degsDOWN, OrgDb = org, keyType = key, ont = "MF", pvalueCutoff = pv, universe = uni, readable = FALSE, pool = TRUE, ...)
+  ego4 <- enrichGO(gene = degsALL, OrgDb = org, keyType = key, ont = "BP", pvalueCutoff = pv, universe = uni, readable = FALSE, pool = TRUE, ...)
+  ego5 <- enrichGO(gene = degsUP, OrgDb = org, keyType = key, ont = "BP", pvalueCutoff = pv, universe = uni, readable = FALSE, pool = TRUE, ...)
+  ego6 <- enrichGO(gene = degsDOWN, OrgDb = org, keyType = key, ont = "BP", pvalueCutoff = pv, universe = uni, readable = FALSE, pool = TRUE, ...)
   namesEgos <- c("All_MF", "Up_MF", "Down_MF", "All_BP", "Up_BP", "Down_BP")
   allEgos <- list(ego1, ego2, ego3, ego4, ego5, ego6)
   names(allEgos) <- namesEgos
   return(allEgos)
 }
 
-plot_allEGO <- function(allEgo, cats = 20, ti = ""){
-  return()
-  #for eg in allEgo...
-  #dotplot(eg, cats, )
+
+compute_allGSEGOs <- function(degsLFCList, org, key, pv = 0.5, ...) {
+  # Computes BP and MF GO GSEA enrichments for a LogFC sorted list of genes of interest.
+  # Returns a list of 2 enrichResult instances.
+  gse1 <- gseGO(geneList = degsLFCList, OrgDb = org, keyType = key, ont = "MF", pvalueCutoff = pv, ...)
+  gse2 <- gseGO(gene = degsLFCList, OrgDb = org, keyType = key, ont = "BP", pvalueCutoff = pv, ...)
+  return(list("MF_GSEA" =  gse1, "BP_GSEA" = gse2))
 }
+
+
+compute_allKEGGs <- function(degsUP, degsDOWN, org, uni, pv = 0.05, ...){
+  # Computes all KEGG enrichments for list of genes of interest. UP and DOWN and union. Org must be a KEGGdb name.
+  # Returns a list of 3 enrichResult instances.
+  degsALL <- c(degsUP, degsDOWN)
+  ekeg1 <- enrichKEGG(gene = degsALL, organism = org, pvalueCutoff = pv, universe = uni, ...)
+  ekeg2 <- enrichKEGG(gene = degsUP, organism = org, pvalueCutoff = pv, universe = uni, ...)
+  ekeg3 <- enrichKEGG(gene = degsDOWN, organism = org, pvalueCutoff = pv, universe = uni, ...)
+  return(list("KEGG_ALL" = ekeg1, "KEGG_UP" = ekeg2, "KEGG_DOWN" = ekeg3))
+}
+
+
+compute_allMKEGGs <- function(degsUP, degsDOWN, org, uni, pv = 0.05, ...){
+  # Computes all KESS enrichments for list of genes of interest. UP and DOWN and union. Org must be a KEGGdb name.
+  # Returns a list of 3 enrichResult instances.
+  degsALL <- c(degsUP, degsDOWN)
+  ekeg1 <- enrichMKEGG(gene = degsALL, organism = org, pvalueCutoff = pv, universe = uni, ...)
+  ekeg2 <- enrichMKEGG(gene = degsUP, organism = org, pvalueCutoff = pv, universe = uni, ...)
+  ekeg3 <- enrichMKEGG(gene = degsDOWN, organism = org, pvalueCutoff = pv, universe = uni, ...)
+  return(list("MKEGG_ALL" = ekeg1, "MKEGG_UP" = ekeg2, "KEGG_MDOWN" = ekeg3))
+}
+
+
+compute_wikiPaths <- function(degsLFCList, org, orgDB, key, pv = 0.05, ...){
+  # Compute the WikiPathways enrichments
+  # Transform the key types to ENTREZ...
+  nn <- bitr(names(degsLFCList), fromType = key, toType = "ENTREZID", OrgDb = orgDB)
+  # Select the ones that we have a key...
+  degsLFCList2 <- degsLFCList[nn[[key]]]
+  names(degsLFCList2) <- nn$ENTREZID
+  return(list("WikiPaths" = gseWP(degsLFCList2, organism = org, pvalueCutoff = pv, ...)))
+}
+
+
+compute_Reactome <- function(degs, org, orgDB, key, uni, pv = 0.05, ...){
+  # Compute Reactome Paths enrichments
+  # Transform the key types to ENTREZ...
+  nn <- bitr(degs, fromType = key, toType = "ENTREZID", OrgDb = orgDB)
+  return(list("REACTOME" = enrichPathway(nn$ENTREZID, organism = org, pvalueCutoff = pv, universe = uni, ...)))
+}
+
+
+plot_allEnrich <- function(allEgos, cats = 20, ti = "", ...) {
+  # Manage the plotting of an allEGOs result.
+  nms <- names(allEgos)
+  for (nm in nms) {
+    ego <- allEgos[[nm]]
+    if (dim(data.frame(ego))[1] == 0) {
+      plot.new()
+      text(x = 0.5, y = 0.5, paste("No enrichment found for", nm, "in", ti))
+    } else {
+      nEnriched <- dim(data.frame(ego))[1]
+      plot(dotplot(ego, showCategory = cats, title = paste(ti, nEnriched, "Enrichments of", nm, sep = " "), ...))
+      # R error... FIXME plot(goplot(ego), ...)
+    }
+  }
+}
+
+plotAdvanced_Enrich <- function(ego, degsDF, ct1 = 25, cl = 5, ct2 = 4, ct3 = 25, ti = "...", ...){
+  # Tree of GOs
+  egoPT <- pairwise_termsim(ego)
+  p1 <- tryCatch({treeplot(egoPT, showCategory = ct1, cluster.params = list(n = cl), ...)}, error = function(e) {plot.new(); text("Too few enrichments to construct a tree")}) # Enriched  GO clusters
+  # Cnetplot
+  # prepare the logFC object
+  lfc <- sort(setNames(degsDF$logFC, rownames(degsDF)), decreasing = TRUE)
+  p2 <- cnetplot(ego, layout = "randomly", foldChange = lfc, color_edge = "category", size_edge = 0.1, shadowtext = "category", showCategory = ct2,  ...)  # Coloured with the fold change
+  # GO plot DAG
+  p3 <- goplot(ego, showCategory = ct3, max.overlaps = Inf, ...)  # A way to look at the lower level of enrichments
+  ggarrange(p1, p2, p3, ncol = 1, nrow = 3)
+}
+
 
 
 # Low level function to add counts on a boxplot.
