@@ -177,7 +177,7 @@ if __name__ == "__main__" :
   print('File "' + fastaFile.name + '" has the following statistics:')
   print(f'Number of sequences          : {comma_me(str(count_fasta(fastaFile)))}')
   print(f'Number of nucleotides        : {comma_me(str(count_nucleotides(fastaFile)))}')
-  mn, mx = min_max_lengths(lengthsArray)
+  mx, mn = min_max_lengths(lengthsArray)
   print(f'Longest Sequence             : {comma_me(str(mx))}')
   print(f'Shortest Sequence            : {comma_me(str(mn))}')
   mean, sd, cv, median, iqr = length_statistics(lengthsArray)
