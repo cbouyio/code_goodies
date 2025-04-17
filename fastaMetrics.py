@@ -30,7 +30,8 @@ def parse_fasta(fastaFile, typ = "fasta") :
   """Low level function to return an iterator of sequence record objects.
 
   This is the primitive function that all the rest of the functions in that
-  module should call."""
+  module should call.
+  """
   if typ not in ("fasta", "fastq") :
     raise StandardError("Only fasta or fastq file formats are supported.")
   seqList = []
@@ -40,11 +41,13 @@ def parse_fasta(fastaFile, typ = "fasta") :
   return seqList
 
 def count_fasta(fastaFile) :
-  """Return the number of sequences a fasta file contains."""
+  """Return the number of sequences a fasta file contains.
+  """
   return len(parse_fasta(fastaFile))
 
 def count_lengths(fastaFile, sort = False) :
-  """Return a list with the lengths of the sequences."""
+  """Return a list with the lengths of the sequences.
+  """
   dist = []
   for seqRec in parse_fasta(fastaFile) :
     dist.append(len(seqRec))
@@ -53,25 +56,32 @@ def count_lengths(fastaFile, sort = False) :
   return dist
 
 def print_lengths(fastaFile, sort = False) :
-  """Print a list with the lengths of the sequences. Elsewhere, pandas.cut() is a convenient way to bin values into arbitrary intervals. Let’s say you have some data on ages of individuals and want to bucket them sensibly:"""
+  """Print a list with the lengths of the sequences.
+  
+  Elsewhere, pandas.cut() is a convenient way to bin values into arbitrary intervals.
+  Let’s say you have some data on ages of individuals and want to bucket them sensibly:
+  """
   # TODO I do not know if we need this function.
   print('length')
   for seqLen in count_lengths(fastaFile, sort) :
     print(str(seqLen))
 
 def count_nucleotides(fastaFile) :
-  """Return the number of bases the file contains."""
+  """Return the number of bases the file contains.
+  """
   return sum(count_lengths(fastaFile))
 
 def length_histogram(fastaFile, bins) :
-  """Return a tuple of frequencies and bin edges."""
+  """Return a tuple of frequencies and bin edges.
+  """
   lengthsList = []
   for seqRec in parse_fasta(fastaFile) :
     lengthsList.append(len(seqRec))
   return np.histogram(lengthsList, bins)
 
 def print_histogram(fastaFile, bin = 'auto') :
-  """Return a "pretty" print out of the histogram."""
+  """Return a "pretty" print out of the histogram.
+  """
   #Compute the bin centres
   hist, bins = length_histogram(fastaFile, bin)
   # binRanges = []
@@ -91,12 +101,14 @@ def print_histogram(fastaFile, bin = 'auto') :
     print(binStr.rjust(maxDigits1), ':', freqStr.rjust(maxDigits2), ':', histStr.ljust(maxDigits1 + maxDigits2))
 
 def min_max_lengths(fastaFile) :
-  """Return the min and max of the sequence lengths."""
+  """Return the min and max of the sequence lengths.
+  """
   lengths = count_lengths(fastaFile, sort = True)
   return (lengths[-1], lengths[0])
 
 def calculate_N50(fastaFile) :
-  """Return the N50 of a fasta file."""
+  """Return the N50 of a fasta file.
+  """
   #TODO Include a reference file as an option for the calculation of the N50.
   halfLenTotal = count_nucleotides(fastaFile) / 2.0
   currentLen = 0
@@ -129,7 +141,8 @@ def length_statistics(fastaFile) :
   return (mean, sd, coefVar, median, iqr)
 
 def mode(fastaFile) :
-  """Return the mode (the most frequent value of the data.)"""
+  """Return the mode (the most frequent value of the data.)
+  """
   lengths = count_lengths(fastaFile)
   md = stats.mode(lengths, axis=None)
   return md
@@ -137,9 +150,10 @@ def mode(fastaFile) :
 def comma_me(amount):
   """Commafying recipe.
   Taken from: http://code.activestate.com/recipes/146461-commafying-an-integer/
-  The locale module has a similar functionality too   locale.format("%.2f", num, 1)"""
+  The locale module has a similar functionality too locale.format("%.2f", num, 1)
+  """
   orig = amount
-  new = re.sub("^(-?\d+)(\d{3})", '\g<1>,\g<2>', amount)
+  new = re.sub(r"^(-?\d+)(\d{3})", r"\g<1>,\g<2>", amount)
   if orig == new:
     return new
   else:
@@ -149,6 +163,7 @@ def comma_me(amount):
 if __name__ == "__main__" :
   import argparse
 
+  # Command line arguments
   parser = argparse.ArgumentParser(description = 'Python script (and module) to calculate a series of statistics related to sequences contained in a Fasta/q file.')
   parser.add_argument('fasta', nargs = '?', default = '-', type = argparse.FileType('r'), metavar = 'path_fasta/q', help = 'A fasta/q input file path or STDIN. (Default: STDIN)')
   parser.add_argument('out', nargs = '?', default = '-', type = argparse.FileType('w'), metavar = 'path_output', help = 'The output file path or STDOUT. (Default: STDOUT)')
@@ -167,13 +182,14 @@ if __name__ == "__main__" :
   print(f'Longest Sequence             : {comma_me(str(mx))}')
   print(f'Shortest Sequence            : {comma_me(str(mn))}')
   mean, sd, cv, median, iqr = length_statistics(fastaFile)
-  sd = f'{sd:.1f}'
-  cv = f'{cv:.4f}'
+  mean = f'{mean:.2f}'
+  sd = f'{sd:.2f}'
+  cv = f'{cv:.3f}'
   print(f'Mean sequence length         : {comma_me(str(mean))}')
-  print(f'STDV sequence length         : {comma_me(sd)}')
-  print(f'Variation of sequence length : {comma_me(cv)}')
+  print(f'STDV sequence length         : {sd}')
+  print(f'Variation of sequence length : {cv}')
   print(f'Median sequence length       : {comma_me(str(median))}')
-  print(f'IQR sequence length          : {comma_me(str(iqr))}')
+  print(f'IQR sequence length          : {str(iqr)}')
   #print('Mode of sequence length      : %s' % comma_me(str(mode(fastaFile))))  # TODO: needs to be computed on a histogram from numpy with bins etc.
   print(f'N50 of the current file      : {comma_me(str(calculate_N50(fastaFile)))}')
   print(f'-Sequence length histogram:')  # TODO: take the proper numpy implementation from here https://numpy.org/doc/stable/reference/routines.statistics.html
