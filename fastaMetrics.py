@@ -24,8 +24,24 @@ from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 import numpy as np
 from scipy import stats
+import matplotlib.pyplot as plt
 
 
+# A small high order function
+def comma_me(amount):
+  """Commafying recipe.
+  Taken from: http://code.activestate.com/recipes/146461-commafying-an-integer/
+  The locale module has a similar functionality too locale.format("%.2f", num, 1)
+  """
+  orig = amount
+  new = re.sub(r"^(-?\d+)(\d{3})", r"\g<1>,\g<2>", amount)
+  if orig == new:
+    return new
+  else:
+    return comma_me(new)
+
+
+# Start the FASTA statistics functions
 def parse_fasta(fastaFile, typ = "fasta") :
   """Low level function to return an iterator of sequence record objects.
 
@@ -48,12 +64,13 @@ def count_fasta(fastaFile) :
 def count_lengths(fastaFile, sort = False) :
   """Return a list with the lengths of the sequences.
   """
-  dist = []
+  lengths = []
   for seqRec in parse_fasta(fastaFile) :
-    dist.append(len(seqRec))
+    lengths.append(len(seqRec))
   if sort :
-    dist.sort(reverse = True)
-  return dist
+    lengths.sort(reverse = True)
+  lens = np.array(lengths)
+  return lens
 
 def print_lengths(fastaFile, sort = False) :
   """Print a list with the lengths of the sequences.
@@ -79,32 +96,10 @@ def length_histogram(fastaFile, bins) :
     lengthsList.append(len(seqRec))
   return np.histogram(lengthsList, bins)
 
-def print_histogram(fastaFile, bin = 'auto') :
-  """Return a "pretty" print out of the histogram.
-  """
-  #Compute the bin centres
-  hist, bins = length_histogram(fastaFile, bin)
-  # binRanges = []
-  # for i in xrange(bins) :
-  #   binRange = [int(round(hist[1] + i * hist[2], 0)), int(round(hist[1] + (i + 1) * hist[2], 0))]
-  #   if binRange[0] < 0.0 :
-  #     binRange[0] = 0
-  #   binRanges.append(binRange)
-  # freqs = hist[0]
-  maxDigits1 = 2 * len(comma_me(str(bins[-1]))) + 1
-  maxDigits2 = len(comma_me(str(hist[-1]))) + 1
-  print('Length'.center(maxDigits1), ':', 'Counts (freq)'.center(maxDigits2), ':', 'Hist'.center(maxDigits1 + maxDigits2))
-  for i in range(len(hist)) :
-    binStr = "{}-{}".format(comma_me(str(int(bins[i]))), comma_me(str(int(bins[i+1]) - 1)))
-    freqStr = comma_me(str(hist[i])) + " ({0:.3f})".format(hist[i]/float(count_fasta(fastaFile)))
-    histStr = '{}'.format('+' * hist[i])
-    print(binStr.rjust(maxDigits1), ':', freqStr.rjust(maxDigits2), ':', histStr.ljust(maxDigits1 + maxDigits2))
-
-def min_max_lengths(fastaFile) :
+def min_max_lengths(lengths) :
   """Return the min and max of the sequence lengths.
   """
-  lengths = count_lengths(fastaFile, sort = True)
-  return (lengths[-1], lengths[0])
+  return (lengths.max(), lengths.min())
 
 def calculate_N50(fastaFile) :
   """Return the N50 of a fasta file.
@@ -120,44 +115,46 @@ def calculate_N50(fastaFile) :
       break
   return n50
 
-def mean_sd_median_lengths(fastaFile):
+def length_statistics(lengths) :
   """Return some descriptive statistics of the sequence lengths.
 
   Mean, SD, Median, Coefficient of variation.
   """
-  lengths = count_lengths(fastaFile)
-
-def length_statistics(fastaFile) :
-  """Return some descriptive statistics of the sequence lengths.
-
-  Mean, SD, Median, Coefficient of variation.
-  """
-  lengths = count_lengths(fastaFile)
-  mean = np.mean(lengths)
-  sd = np.std(lengths)
+  mean = lengths.mean()
+  sd = lengths.std()
   median = np.median(lengths)
   coefVar = sd/mean
   iqr = np.quantile(lengths, 0.75) - np.quantile(lengths, 0.25)
   return (mean, sd, coefVar, median, iqr)
 
-def mode(fastaFile) :
+def mode(lengths) :
   """Return the mode (the most frequent value of the data.)
   """
-  lengths = count_lengths(fastaFile)
   md = stats.mode(lengths, axis=None)
   return md
 
-def comma_me(amount):
-  """Commafying recipe.
-  Taken from: http://code.activestate.com/recipes/146461-commafying-an-integer/
-  The locale module has a similar functionality too locale.format("%.2f", num, 1)
+def print_histogram(lengths, bins) :
+  """Return a "pretty" print out of the histogram.
   """
-  orig = amount
-  new = re.sub(r"^(-?\d+)(\d{3})", r"\g<1>,\g<2>", amount)
-  if orig == new:
-    return new
-  else:
-    return comma_me(new)
+  # Compute the histogram
+  hist, bin_edges = np.histogram(lengths, bins = bins)
+  # Print the histogram
+  for i in range(len(bin_edges) - 1):
+    bar = '.' * int(hist[i])
+    print(f'{comma_me(str(int(bin_edges[i])))} - {comma_me(str(int(bin_edges[i+1])))}: {bar} ({hist[i]})')
+
+def plot_histogram(lengths, bins):
+  """Return a matplotlib figure of the histogram.
+  """
+  # Compute the histogram
+  hist, bin_edges = np.histogram(lengths, bins = bins)
+  # Plot the histogram
+  plt.figure(figsize=(8, 6))
+  plt.stairs(hist, bin_edges, fill=True)
+  plt.title('Histogram of contig length')
+  plt.xlabel('nts')
+  plt.ylabel('Count')
+  plt.show()
 
 
 if __name__ == "__main__" :
@@ -167,21 +164,22 @@ if __name__ == "__main__" :
   parser = argparse.ArgumentParser(description = 'Python script (and module) to calculate a series of statistics related to sequences contained in a Fasta/q file.')
   parser.add_argument('fasta', nargs = '?', default = '-', type = argparse.FileType('r'), metavar = 'path_fasta/q', help = 'A fasta/q input file path or STDIN. (Default: STDIN)')
   parser.add_argument('out', nargs = '?', default = '-', type = argparse.FileType('w'), metavar = 'path_output', help = 'The output file path or STDOUT. (Default: STDOUT)')
-  parser.add_argument('-b', '--bins', type = int, metavar = 'no_of_bins', help = "The number of bins for the calculation of the length distribution. (Default: 'auto')", default = 10, dest = 'bins')
+  parser.add_argument('-b', '--bins', metavar = 'no_of_bins', help = "The number of bins for the calculation of the length distribution. (Default: 'sqrt')", default = 'sqrt', dest = 'bins')
   parser.add_argument('-t', '--type', type = str, metavar = 'type_of_file', help = "Designate the type of the Fasta/q file. (Default: fasta)", default = 'fasta', dest = 'tp')
 
   ns = parser.parse_args()
   bins = ns.bins
   tp = ns.tp
   fastaFile = ns.fasta
+  lengthsArray = count_lengths(fastaFile)
 
   print('File "' + fastaFile.name + '" has the following statistics:')
   print(f'Number of sequences          : {comma_me(str(count_fasta(fastaFile)))}')
   print(f'Number of nucleotides        : {comma_me(str(count_nucleotides(fastaFile)))}')
-  mn, mx = min_max_lengths(fastaFile)
+  mn, mx = min_max_lengths(lengthsArray)
   print(f'Longest Sequence             : {comma_me(str(mx))}')
   print(f'Shortest Sequence            : {comma_me(str(mn))}')
-  mean, sd, cv, median, iqr = length_statistics(fastaFile)
+  mean, sd, cv, median, iqr = length_statistics(lengthsArray)
   mean = f'{mean:.2f}'
   sd = f'{sd:.2f}'
   cv = f'{cv:.3f}'
@@ -190,7 +188,8 @@ if __name__ == "__main__" :
   print(f'Variation of sequence length : {cv}')
   print(f'Median sequence length       : {comma_me(str(median))}')
   print(f'IQR sequence length          : {str(iqr)}')
-  #print('Mode of sequence length      : %s' % comma_me(str(mode(fastaFile))))  # TODO: needs to be computed on a histogram from numpy with bins etc.
+  print(f'Mode of sequence length      : {str(mode(lengthsArray))}')  # TODO: needs to be computed on a histogram from numpy with bins etc.
   print(f'N50 of the current file      : {comma_me(str(calculate_N50(fastaFile)))}')
   print(f'-Sequence length histogram:')  # TODO: take the proper numpy implementation from here https://numpy.org/doc/stable/reference/routines.statistics.html
-  print_histogram(fastaFile, bins)
+  print_histogram(lengthsArray, bins)
+  plot_histogram(lengthsArray, bins)
