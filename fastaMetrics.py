@@ -166,6 +166,7 @@ if __name__ == "__main__" :
   parser.add_argument('out', nargs = '?', default = '-', type = argparse.FileType('w'), metavar = 'path_output', help = 'The output file path or STDOUT. (Default: STDOUT)')
   parser.add_argument('-b', '--bins', metavar = 'no_of_bins', help = "The number of bins for the calculation of the length distribution. (Default: 'sqrt')", default = 'sqrt', dest = 'bins')
   parser.add_argument('-t', '--type', type = str, metavar = 'type_of_file', help = "Designate the type of the Fasta/q file. (Default: fasta)", default = 'fasta', dest = 'tp')
+  parser.add_argument('-p', '--plot', help = "Flag to enable a figure plot of the fasta sequences lengths histogram.", action='store_true', dest = 'plot')
 
   ns = parser.parse_args()
   bins = ns.bins
@@ -192,4 +193,5 @@ if __name__ == "__main__" :
   print(f'N50 of the current file      : {comma_me(str(calculate_N50(fastaFile)))}')
   print(f'-Sequence length histogram:')  # TODO: take the proper numpy implementation from here https://numpy.org/doc/stable/reference/routines.statistics.html
   print_histogram(lengthsArray, bins)
-  plot_histogram(lengthsArray, bins)
+  if ns.plot:
+    plot_histogram(lengthsArray, bins)
