@@ -139,9 +139,12 @@ def print_histogram(lengths, bins) :
   # Compute the histogram
   hist, bin_edges = np.histogram(lengths, bins = bins)
   # Print the histogram
+  mxNumbers = len(str(bin_edges[-1])) - 1
   for i in range(len(bin_edges) - 1):
-    bar = '.' * int(hist[i])
-    print(f'{comma_me(str(int(bin_edges[i])))} - {comma_me(str(int(bin_edges[i+1])))}: {bar} ({hist[i]})')
+    if int(hist[i]) != 0:
+      q, mod = divmod(int(hist[i]), 100)
+      bar = '#' * q + '.' * mod
+      print(f'{comma_me(str(int(bin_edges[i]))).ljust(mxNumbers)} - {comma_me(str(int(bin_edges[i+1]))).ljust(mxNumbers)}: {bar} ({hist[i]})')
 
 def plot_histogram(lengths, bins):
   """Return a matplotlib figure of the histogram.
@@ -191,7 +194,7 @@ if __name__ == "__main__" :
   print(f'IQR sequence length          : {str(iqr)}')
   print(f'Mode of sequence length      : {str(mode(lengthsArray))}')  # TODO: needs to be computed on a histogram from numpy with bins etc.
   print(f'N50 of the current file      : {comma_me(str(calculate_N50(fastaFile)))}')
-  print(f'-Sequence length histogram:')  # TODO: take the proper numpy implementation from here https://numpy.org/doc/stable/reference/routines.statistics.html
+  print(f'| Sequence length histogram (# = 100, . = 1) |')
   print_histogram(lengthsArray, bins)
   if ns.plot:
     plot_histogram(lengthsArray, bins)
