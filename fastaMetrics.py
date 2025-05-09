@@ -130,8 +130,8 @@ def length_statistics(lengths) :
 def mode(lengths) :
   """Return the mode (the most frequent value of the data.)
   """
-  md = stats.mode(lengths, axis=None)
-  return md
+  md, freq = stats.mode(lengths, axis=None)
+  return (md, freq)
 
 def print_histogram(lengths, bins) :
   """Return a "pretty" print out of the histogram.
@@ -139,12 +139,14 @@ def print_histogram(lengths, bins) :
   # Compute the histogram
   hist, bin_edges = np.histogram(lengths, bins = bins)
   # Print the histogram
-  mxNumbers = len(str(bin_edges[-1])) - 1
+  mxNum = len(str(bin_edges[-1])) + 3  # To accommodate the 'nts' string
   for i in range(len(bin_edges) - 1):
     if int(hist[i]) != 0:
       q, mod = divmod(int(hist[i]), 100)
       bar = '#' * q + '.' * mod
-      print(f'{comma_me(str(int(bin_edges[i]))).ljust(mxNumbers)} - {comma_me(str(int(bin_edges[i+1]))).ljust(mxNumbers)}: {bar} ({hist[i]})')
+      first_bin = comma_me(str(int(bin_edges[i]))) + " nts"
+      second_bin = comma_me(str(int(bin_edges[i+1]))) + " nts"
+      print(f'{first_bin.ljust(mxNum)} - {second_bin.ljust(mxNum)} :  {bar} ({hist[i]})')
 
 def plot_histogram(lengths, bins):
   """Return a matplotlib figure of the histogram.
@@ -192,7 +194,7 @@ if __name__ == "__main__" :
   print(f'Variation of sequence length : {cv}')
   print(f'Median sequence length       : {comma_me(str(median))}')
   print(f'IQR sequence length          : {str(iqr)}')
-  print(f'Mode of sequence length      : {str(mode(lengthsArray))}')  # TODO: needs to be computed on a histogram from numpy with bins etc.
+  print(f'Mode of sequence length      : mode: {str(mode(lengthsArray)[0])}, freq: {str(mode(lengthsArray)[1])}')
   print(f'N50 of the current file      : {comma_me(str(calculate_N50(fastaFile)))}')
   print(f'| Sequence length histogram (# = 100, . = 1) |')
   print_histogram(lengthsArray, bins)
