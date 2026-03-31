@@ -1,5 +1,6 @@
-# Source file with useful functions for preprocessing, differential, enrichment and cluster analysis of RNA-seq data.
-# cbouyio, since 2019, UMR 7216 & UFR 8512, ERL 11933
+# Source file with useful functions for preprocessing, differential expression,
+#enrichment and cluster analysis of RNA-seq data.
+# Costas Bouyioukos, since 2019, UMR 7216 & UMR 8512, ERL 11933
 
 # Libraries
 library(mclust)
@@ -17,12 +18,14 @@ my_palette <- function(n, nc = "RdYlGn"){
   return(colorRampPalette(brewer.pal(11, name = nc))(n))
 }
 
+
 jaccard_similarity <- function(a, b) {
   # Return the Jaccard similarity between two sets A and B. Useful to compare clusterings
   inters <- length(intersect(a, b))
   uni <- length(union(a, b))
   return(inters/uni)
 }
+
 
 # Processing functions ----------------
 discretise <- function(x, t) {
@@ -31,6 +34,7 @@ discretise <- function(x, t) {
   else if (x >= t) return(1)
   else return(0)
 }
+
 
 discretiseList <- function(v, thres, fc = 1, ...) {
   # Low level function which discretises a list, either by a 'hard' threshold, or by MAD
@@ -46,11 +50,13 @@ discretiseList <- function(v, thres, fc = 1, ...) {
   return(sapply(v, FUN = discretise, t = thres2, ...))
 }
 
+
 discretiseMatrix <- function(df, ...){
   # Function to discretise a data.frame
   ll <- apply(df, 2, FUN = discretiseList, ...)
   return(as.data.frame(ll))
 }
+
 
 export_cytoscape <- function(m, filename, ...) {
   # Function to export a correlation matrix 'm' to a cytoscape network file
@@ -73,6 +79,7 @@ remove_all_zeros <- function(df, ...){
   return(df[rowSums(df[]) > 0,])
 }
 
+
 filter_low_counts <- function(gem, exps, g = 1, t = 5, ...){
   # Function to filter out lowly expressed (i.e. counts) genes
   # gem  : Gene Expression Matrix. A data frame with the conditions as columns and the gene expression profiles as rows.
@@ -93,6 +100,7 @@ filter_low_counts <- function(gem, exps, g = 1, t = 5, ...){
   }
   return(gem[rows, ])
 }
+
 
 filter_noisy_counts <- function(gem, exps, c = 0.5, ...){
   # Function to filter out noisy expressed genes
@@ -115,6 +123,7 @@ filter_noisy_counts <- function(gem, exps, c = 0.5, ...){
   return(gem[rows, ])
 }
 
+
 filter_low_expression <- function(e, groups, thres = 3, samples = 1, coefVar = 0.5, ...){
   # Function to filter lowly expressed genes
   # e       : raw counts data.frame (or cpm, or tpm matrix).
@@ -136,6 +145,7 @@ filter_low_expression <- function(e, groups, thres = 3, samples = 1, coefVar = 0
   }
   return(e[rows,])
 }
+
 
 filter_informative_genes <- function(e, grouping, test = "t", thres = 0.01, ...){
   # Function to filter informative genes between two conditions
@@ -187,6 +197,7 @@ plotMatrixBoxplot <- function(df, ...) {
   return(p)
 }
 
+
 geneBoxplotCond <- function(matrix, name, experiments, treatments, jit_width = 0.1, point_size = 2, ...){
   # Function to plot expression of individual gene
   # Experiment : are the different fractions.
@@ -198,6 +209,7 @@ geneBoxplotCond <- function(matrix, name, experiments, treatments, jit_width = 0
   p <- ggplot(ge, aes(exp, TPM));
   p + geom_jitter(aes(color = treat), width = jit_width, size = point_size) + ggtitle(name);
 }
+
 
 plot_semiSupervised_clust <- function(data, k, method, scale = FALSE, title = "", ...){
   # Nicely plots a k-means and other semi-supervised clusterings
@@ -342,15 +354,23 @@ plot_allEnrich <- function(allEgos, cats = 20, ti = "", ...) {
   }
 }
 
+
 plotAdvanced_Enrich <- function(ego, degsDF, ct1 = 25, cl = 5, ct2 = 4, ct3 = 25, ti = "...", ...){
-  # Tree of GOs
+  # Check if the enrichment result has any terms
+  if (is.null(ego) || nrow(ego) == 0) {
+    warning("No enriched terms found. Returning empty plot.")
+    plot.new()
+    text(0.5, 0.5, "No enriched terms to plot")
+    return(invisible(NULL))
+  }
+  # Tree arrangement of GOs
   egoPT <- pairwise_termsim(ego)
   p1 <- tryCatch({treeplot(egoPT, showCategory = ct1, cluster.params = list(n = cl), ...)}, error = function(e) {plot.new(); text("Too few enrichments to construct a tree")}) # Enriched  GO clusters
-  # Cnetplot
+  # Cnetplot gene network plot
   # prepare the logFC object
   lfc <- sort(setNames(degsDF$logFC, rownames(degsDF)), decreasing = TRUE)
-  p2 <- cnetplot(ego, layout = "randomly", foldChange = lfc, color_edge = "category", size_edge = 0.1, shadowtext = "category", showCategory = ct2,  ...)  # Coloured with the fold change
-  # GO plot DAG
+  p2 <- cnetplot(ego, layout = "randomly", foldChange = lfc, color_edge = "category", size_edge = 0.1, showCategory = ct2,  ...)  # shadowtext = "all",  Coloured with the fold change
+  # DAG plot GO
   p3 <- goplot(ego, showCategory = ct3, max.overlaps = Inf, ...)  # A way to look at the lower level of enrichments
   ggarrange(p1, p2, p3, ncol = 1, nrow = 3)
 }
