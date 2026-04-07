@@ -355,24 +355,33 @@ plot_allEnrich <- function(allEgos, cats = 20, ti = "", ...) {
 }
 
 
-plotAdvanced_Enrich <- function(ego, degsDF, ct1 = 25, cl = 5, ct2 = 4, ct3 = 25, ti = "...", ...){
+plotAdvanced_Enrich <- function(ego, degsDF, ct1 = 20, cl = 5, ct2 = 4, ct3 = 20, ti = "...", ...){
   # Check if the enrichment result has any terms
   if (is.null(ego) || nrow(ego) == 0) {
-    warning("No enriched terms found. Returning empty plot.")
+    warning("No, few enriched terms found. Returning empty plot.")
     plot.new()
     text(0.5, 0.5, "No enriched terms to plot")
     return(invisible(NULL))
   }
   # Tree arrangement of GOs
   egoPT <- pairwise_termsim(ego)
-  p1 <- tryCatch({treeplot(egoPT, showCategory = ct1, cluster.params = list(n = cl), ...)}, error = function(e) {plot.new(); text("Too few enrichments to construct a tree")}) # Enriched  GO clusters
+  p1 <- tryCatch({treeplot(egoPT, showCategory = ct1, nCluster = cl, 
+                           extend = 0, label_format = 11, tiplab_offset = 0.1, cladelab_offset = 28, hexpand = 0.2,  ...)}, 
+                 error = function(e) {plot.new(); text("Too few enrichments to construct a tree")}) # Enriched  GO clusters
   # Cnetplot gene network plot
   # prepare the logFC object
   lfc <- sort(setNames(degsDF$logFC, rownames(degsDF)), decreasing = TRUE)
-  p2 <- cnetplot(ego, layout = "randomly", foldChange = lfc, color_edge = "category", size_edge = 0.1, showCategory = ct2,  ...)  # shadowtext = "all",  Coloured with the fold change
+  p2 <- cnetplot(ego, layout = "randomly",  showCategory = ct2, foldChange = lfc, color_edge = "category", size_edge = 0.1, ...)  # shadowtext = "all",  Coloured with the fold change
   # DAG plot GO
-  p3 <- goplot(ego, showCategory = ct3, max.overlaps = Inf, ...)  # A way to look at the lower level of enrichments
+  p3 <- goplot(ego, showCategory = ct3, max.overlaps = Inf, ...)  # A way to look at the graph relations of enrichments
   ggarrange(p1, p2, p3, ncol = 1, nrow = 3)
+}
+
+
+
+#TODO write a function analyse all to conduct a full analysis of DEGs enrich etc.
+analyse_all <- function(comparison, conditions, efit, tfit, final_counts_table){
+  universe = rownames(final_counts_table)
 }
 
 
